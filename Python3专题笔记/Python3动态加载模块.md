@@ -16,13 +16,13 @@ print(sys.version_info)
 ```python
 import os
 import importlib.util
-from typing import Dict, Union, no_type_check
+from typing import Dict, Optional, no_type_check
 from types import ModuleType
 
 loaded_modules: Dict[str, ModuleType] = { }
 
 @no_type_check
-def import_module(path: str, name: Union[str, None] = None):
+def import_module(path: str, name: Optional[str] = None):
     mod = None
     try:
         path = os.path.expanduser(path)
