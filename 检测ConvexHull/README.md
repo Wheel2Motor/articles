@@ -1,7 +1,7 @@
 目录
 ================================================================================
 
-[如何检测Polygon是不是一个Convex Hull](#如何检测Polygon是不是一个ConvexHull)
+[如何检测Polygon是不是一个ConvexHull](#如何检测Polygon是不是一个ConvexHull)
 
 [锐角](#锐角)
 
