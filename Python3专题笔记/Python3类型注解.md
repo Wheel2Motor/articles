@@ -1,0 +1,576 @@
+Python3类型注解
+================================================================================
+
+__测试版本__：Python3.10.8
+
+### 静态检查
+
+Python3的类型注解，并不影响运行，但是在使用mypy检查的时候会对不匹配的类型进行报错，及时发现可能得风险。
+
+```python
+def add(a: int, b: int) -> int:
+    return a + b
+
+add(1, 3.14)
+```
+
+在Shell中输入命令。
+
+```powershell
+python script.py
+# 4.14
+
+mypy script.py
+# error: Argument 2 to "add" has incompatible type "float"; expected "int"
+```
+
+### 简单数据类型注解
+
+```python
+# 整数
+def add_i(a: int, b: int) -> int:
+    return a + b
+
+# 浮点数，能兼容整数
+def add_f(a: float, b: float) -> float:
+    return a + b
+
+# 字符串
+def strcat(a: str, b: str) -> str:
+    return a + b
+```
+
+### 列表List
+
+`List` 单独使用表示任意长度的任意类型元素的列表。
+
+`List[T]` 表示任意长度的指定类型元素的列表。
+
+```python
+from typing import List
+
+# list，返回任意长度的列表
+def repeat_a(num: int) -> list:
+    return [num] * 3
+
+# List，返回任意长度的列表，用于类型注解推荐使用List而非list
+def repeat_b(num: int) -> List:
+    return [num] * 3
+
+# List[int]表示一个任意数量元素的列表，且每个元素都是一个int类型数据
+def repeat_c(num: int) -> List[int]:
+    return [num] * 3
+
+# List[int]只能表示一个任意数量元素的列表，无法固定数量，一旦超过一个元素类型注解就会导致语法错误
+# def repeat_c(num: int) -> List[int, int, int]:
+#    return [num] * 3
+```
+
+### 元组Tuple
+
+`Tuple` 单独使用表示任意长度的元组。
+
+`Tuple[T1, T2, T3, ...]` 表示指定数量、类型的元组。
+
+```python
+from typing import Tuple
+
+# tuple，返回任意长度的元组
+def repeat_a(num: int) -> tuple:
+    return (num,) * 3
+
+# Tuple，返回任意长度的元组，用于类型注解推荐使用Tuple而非tuple
+def repeat_b(num: int) -> Tuple:
+    return (num,) * 3
+
+# Tuple[int]表示的不是任意数量，而是只包含一个int类型数据的元组
+def repeat_c(num: int) -> Tuple[int]:
+    return (num,)
+
+# Tuple[int, int, int]表示一个包含三个元素的元组，且每个元素都是一个int类型数据
+def repeat_d(num: int) -> Tuple[int, int, int]:
+    return (num,) * 3
+
+# 类型Alias
+TripleInt = Tuple[int, int, int]
+def repeat_e(num: int) -> TripleInt:
+    return (num,) * 3
+```
+
+### 集合Set
+
+`Set` 单独使用表示任意长度的集合。
+
+`Set[T]` 表示任意长度的指定类型元素的集合。
+
+```python
+from typing import Set
+
+# set，返回任意长度的集合
+def range_a(num: int) -> set:
+    return set(range(num))
+
+# Set，返回任意长度的集合，用于类型注解推荐使用Set而非set
+def range_b(num: int) -> Set:
+    return set(range(num))
+
+# Set[int]表示一个任意数量元素的集合，且每个元素都是一个int类型数据
+def range_c(num: int) -> Set[int]:
+    return set(range(num))
+```
+
+### 任意类型序列
+
+任意类型序列是指有序序列，比如列表、元组等。
+
+集合无序所以不算序列，但是它可以使用collections.abc.Iterable，因为它也是可迭代对象。
+
+```python
+from collections.abc import Sequence
+
+def print_seq(seq: Sequence) -> None:
+    for i in seq:
+        print(i)
+
+def print_seqi(seq: Sequence[int]) -> None:
+    for i in seq:
+        print(i)
+
+def print_seqf(seq: Sequence[float]) -> None:
+    for i in seq:
+        print(i)
+
+print_seq([1, 2, 3])
+print_seqi((1, 2, 3))
+print_seqf((1.0, 2.0, 3.0))
+```
+
+### 字典
+
+使用 `Dict[TK, TV]` 来定义字典的类型信息。
+
+```python
+from typing import Dict
+
+def print_pairs(d: Dict[str, int]):
+    for k, v in d.items():
+        print(k, v)
+
+print_pairs({"A": 1, "B": 2, "C": 3})
+```
+
+### Callable类型
+
+Callable类型的注解是一个列表，里面有两个元素，第一个元素是函数的参数类型列表，第二元素是函数的返回值类型。
+
+`Callable[[ArgType1, ArgType2, ArgType3, ...], ReturnType]`
+
+```python
+from typing import Tuple
+from typing import Callable
+
+# 简单点的例子
+def add(a: int, b: int) -> int:
+    return a + b
+
+def sub(a: int, b: int) -> int:
+    return a - b
+
+def apply_function(func: Callable[[int, int], int], a: int, b: int) -> int:
+    return func(a, b)
+
+apply_function(add, 1, 2)
+apply_function(sub, 1, 2)
+
+# 复杂点的例子
+def func1(a: int, b: int) -> Tuple[int, int]:
+    return a + b, a - b
+
+def func2(a: int, b: int) -> Tuple[int, int]:
+    return a - b, a + b
+
+def process(
+    func1: Callable[[int, int], Tuple[int, int]],
+    func2: Callable[[int, int], Tuple[int, int]],
+    a: int,
+    b: int,
+    ) -> Tuple[int, int]:
+    res1, res2 = func1(a, b)
+    res3, res4 = func2(a, b)
+    return res1 + res2, res3 + res4
+
+process(func1, func2, 1, 2)
+```
+
+### 混合类型Union
+
+有时候数据的类型可能是好几种类型中的一种，可以使用Union来实现混合类型。
+
+Union的参数列表可以放入多个数据类型： `Union[T1, T2, T3, ...]` 。
+
+```python
+from typing import Union
+def introduce(name: str, age: Union[int, None]) -> str:
+    return "My name is {0}, I'm {1} years old.".format(
+            name,
+            age if (not age is None) else "unknown"
+            )
+
+introduce("Foo", 27)
+introduce("Bar", None)
+```
+
+### 可选类型Optional
+
+Optional的参数列表只可以放入一个数据类型： `Optional[T]` 。
+
+`Optional[T]` 相当于 `T | None` 。
+
+```python
+from typing import Union
+from typing import Optional
+
+IntOrNone = Union[int, None]
+def introduce(name: str, age: Optional[IntOrNone] = None) -> str:
+    return "My name is {0}, I'm {1} years old.".format(
+            name,
+            age if (not age is None) else "unknown"
+            )
+
+introduce("Foo", 27)
+introduce("Bar", None)
+```
+
+### 任意类型
+
+如果指定的参数或返回值会是任意类型，可以使用Any类型。
+
+```python
+from random import randint
+from typing import Any
+
+def random(seed: int) -> Any:
+    lut = [123, 3.14, "Hello World"]
+    return lut[seed % len(lut)]
+
+random(randint(0, 255))
+```
+
+### NoneType类型
+
+None的类型虽然是NoneType，它在types模块里，但是不需要用NoneType进行注解，直接使用None即可。
+
+```python
+def nothing(anything: None):
+    pass
+
+nothing(None)
+```
+
+### 不返回的函数
+
+有时候可能需要标明一个函数可能不会返回，可以用NoReturn。
+
+```python
+from typing import Union
+from typing import NoReturn
+
+def test(v: int) -> Union[int, NoReturn]:
+    if v == 0:
+        return 0
+    raise Exception("Error")
+
+test(1)
+```
+
+### 命名元组
+
+使用NamedTuple可以得到类似强类型结构体的效果。
+
+```python
+from typing import NamedTuple
+
+Point = NamedTuple('Point', [('x', int), ('y', int)])
+
+p1 = Point(32, 64)
+p2 = Point(x = 128, y = 256)
+```
+
+### 命名字典
+
+命名字典也具有类似强类型结构体的效果。
+
+```python
+from typing import TypedDict
+
+class Point2D(TypedDict):
+    x: int
+    y: int
+    label: str
+
+a: Point2D = {'x': 1, 'y': 2, 'label': 'good'}  # OK
+b: Point2D = {'z': 3, 'label': 'bad'}           # Fails type check
+
+assert Point2D(x=1, y=2, label='first') == dict(x=1, y=2, label='first')
+```
+
+### 将数据类型定义为新类型
+
+```python
+from typing import NewType
+
+UserId = NewType('UserId', int)
+
+a = UserId(32)
+b = UserId(64)
+print(a + b) # 96
+
+# 会失败，因为UserId只是模拟了一个Callable对象，而非真正的类型
+# class Admin(UserId):pass
+
+# 但是可以用NewType来模拟继承
+Admin = NewType("Admin", UserId)
+admin = Admin(UserId(1))
+```
+
+### 限定范围的字面量
+
+使用Literal可以限定数据类型在指定的几个字面量内。
+
+_Python3.11新增了LiteralString，可以用于表示参数必须是字符串字面量。_
+
+```python
+from typing import IO
+from typing import Any
+from typing import Literal
+from typing import Optional
+
+FileIOMode = Literal["r", "w", "rb", "wb"]
+def file_io_helper(path: str, mode: FileIOMode = "r") -> IO[Any]:
+    return open(path, mode)
+
+fp = file_io_helper("script.py", "r")
+print(fp.read())
+fp.close()
+```
+
+### 类型本身而非类型的实例
+
+常规类型注解都表示该类型实例，如果是类型本身呢，用Type[cls]。
+
+```python
+from typing import Type
+
+class A:
+
+    @classmethod
+    def inst(cls: Type["A"]) -> "A":
+        return cls()
+
+def print_A(cls: Type[A]):
+    print(cls)
+
+def print_a(ins: A):
+    print(ins)
+
+a = A.inst()
+print_A(A)
+print_a(a)
+```
+
+### 函数重载
+
+```python
+from typing import overload
+from typing import Tuple
+
+@overload
+def vector3() -> Tuple[float, float, float]:
+    ...
+
+@overload
+def vector3(value: float) -> Tuple[float, float, float]:
+    ...
+
+@overload
+def vector3(x: float, y: float, z: float) -> Tuple[float, float, float]:
+    ...
+
+def vector3(*args):
+    l = len(args)
+    match l:
+        case 0:
+            return (0.0, 0.0, 0.0)
+        case 1:
+            return (args[0], args[0], args[0])
+        case 3:
+            return (args[0], args[1], args[2])
+        case _:
+            raise Exception("Argument count must be 0, 1 or 3")
+
+print(vector3())
+print(vector3(3.14))
+print(vector3(1, 2, 3))
+
+# print(vector3(1, 2, 3, 4))
+# 无法通过mypy检查
+# Possible overload variants:
+#     def vector3() -> tuple[float, float, float]
+#     def vector3(value: float) -> tuple[float, float, float]
+#     def vector3(x: float, y: float, z: float) -> tuple[float, float, float]
+# Found 1 error in 1 file (checked 1 source file)
+```
+
+### 禁止重载或继承
+
+typing中的final装饰器装饰过的方法将无法被重写，被final装饰过的类将无法被继承。
+
+```python
+from typing import final
+
+class A:
+
+    @final
+    def say(self) -> None:
+        print("I'm A")
+
+class B(A):
+
+    def say(self) -> None: # Error
+        print("I'm B")
+
+b = B()
+b.say()
+```
+
+### 面向接口编程
+
+可以用接口类继承Protocal，并且一旦使用了 `runtime_checkable` 装饰了接口类，实现了接口类的实例就可以在运行时使用 `isinstance` 和 `issubclass` 。
+
+```python
+from typing import Protocol
+from typing import runtime_checkable
+
+@runtime_checkable
+class IPerson(Protocol):
+
+    def name(self) -> str:
+        ...
+
+    def age(self) -> int:
+        ...
+
+class Student:
+
+    def __init__(self, name, age):
+        self.__name = name
+        self.__age = age
+
+    def name(self) -> str:
+        return self.__name
+
+    def age(self) -> int:
+        return self.__age
+
+def print_person(p: IPerson) -> None:
+    name = p.name()
+    age = p.age()
+    clsname = type(p).__name__
+    print(f"<{clsname}: {name} {age}>")
+
+stu = Student("Foo", 27)
+print_person(stu)
+print(isinstance(stu, IPerson)) # True
+```
+
+### 类方法中注解类本身
+
+遇到在类的方法中使用类本身作为类型注解的时候，会引发类型不存在的错误，不仅静态检查无法通过，解释器执行的时候都会报错。可以使用 `"ClassName"` 来表示即将出现的类。
+
+_Python3.11在typing中提供了Self类型，用于表示类本身。_
+
+```python
+class A:
+
+    __instance = None
+
+    @classmethod
+    def instance(cls) -> "A": # 如果用A而不是"A"的话会引发名称错误
+        if not cls.__instance:
+            cls.__instance = cls()
+        return cls.__instance
+
+a = A.instance()
+```
+
+### 循环依赖注解
+
+遇到类型A的方法依赖类型B，类型B的方法依赖类型A，可以用 `"ClassName"` 直接当做类型注解。
+
+```python
+from typing import Set
+
+class Server:
+
+    def __init__(self) -> None:
+        self.__clients: Set["Client"] = set()
+
+    def clients(self) -> Set["Client"]:
+        return self.__clients
+
+    def add_client(self, client: "Client") -> None:
+        self.__clients.add(client)
+
+class Client:
+
+    def __init__(self, cid: int) -> None:
+        self.__cid: int = cid
+
+    def connect(self, server: "Server") -> None:
+        server.add_client(self)
+
+    def __repr__(self) -> str:
+        return f"<Client: {self.__cid}>"
+
+server: Server = Server()
+client1: Client = Client(1)
+client2: Client = Client(2)
+client1.connect(server)
+client2.connect(server)
+print(server.clients())
+```
+
+### 临时关闭检查
+
+有时候有一些特定环境下才会存在的类型，需要临时关闭检查。
+
+* __单行忽略__ ：可以在行尾注释中写上 `# type: ignore` ，就会忽略该行的检查。
+
+  ```python
+  import rt # type: ignore
+
+  class MyType(rt.Geometry):
+
+      def __init__(self, name: str, geo: rt.Geometry) -> None:
+          self.__name = name
+
+  mt = MyType("Foo", rt.Geometry())
+  ```
+
+* __忽略后续脚本__ ：可以在行的前面添加一行注释 `# type: ignore` ，就会忽略后续的检查。
+
+  ```python
+  # type: ignore
+  var1: str = 123
+  var2: str = 234
+  ```
+
+* __忽略代码块__ ：或者使用typing中的装饰器 `no_type_check` 来忽略具体代码块的检查。
+
+  ```python
+  @no_type_check
+  def error_function(param: int) -> int:
+      var: str = param
+      return var
+  ```
+
