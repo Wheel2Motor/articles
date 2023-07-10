@@ -1,5 +1,7 @@
-方法解析顺序Method-Resolution-Order
+多继承中的MRO
 ================================================================================
+
+### 方法解析顺序Method-Resolution-Order
 
 Python中可以使用 `super().method()` 来调用父类的方法。
 
