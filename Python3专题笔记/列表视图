@@ -1,0 +1,96 @@
+列表视图
+====================================================================================================
+
+```python
+class ListView:
+
+    class ListViewIterator:
+
+        def __init__(self, lv):
+            self.__lv = lv
+            tl = len(self.__lv.target)
+            self.__start = self.__lv.start or 0
+            self.__stop  = self.__lv.stop or tl
+            self.__step  = self.__lv.step or 1
+            self.__start = self.__start if self.__start >= 0 else (tl - self.__start)
+            self.__stop  = self.__stop if self.__stop >= 0 else (tl + self.__stop)
+            self.__idx = self.__start
+
+        def __next__(self):
+            if self.__idx < self.__stop:
+                res = self.__lv.target[self.__idx]
+                self.__idx += self.__step
+                return res
+            else:
+                raise StopIteration
+
+    def __init__(self, target, start=None, stop=None, step=None):
+        self.target = target
+        self.start = start
+        self.stop = stop
+        self.step = step
+
+    def __getitem__(self, idx):
+        if isinstance(idx, int):
+            return self.target[self.start + idx]
+        elif isinstance(idx, slice):
+            l = len(self.target)
+            return ListView(
+                self.target,
+                (idx.start or 0) + (self.start or 0),
+                (idx.stop or l) + (self.stop or 0),
+                (idx.step or 1) * (self.step or 1),
+                )
+        else:
+            raise IndexError("Index should be integer or slice object")
+
+    def __setitem__(self, idx, value):
+        if isinstance(idx, int):
+            self.target[self.start + idx] = value
+        elif isinstance(idx, slice):
+            l = len(self.target)
+            self.target[slice(
+                (idx.start or 0) + (self.start or 0),
+                (idx.stop or l) + (self.stop or 0),
+                (idx.step or 1) * (self.step or 1),
+                )] = value
+        else:
+            raise IndexError("Index should be integer or slice object")
+
+    def __iter__(self):
+        return self.ListViewIterator(self)
+
+    def __len__(self):
+        l = 0
+        tl = len(self.target)
+        sstart = self.start or 0
+        sstop = self.stop or tl
+        sstep = self.step or 1
+        sstart = sstart if sstart >= 0 else (tl - sstart)
+        sstop  = sstop if sstop >= 0 else (tl + sstop)
+        idx = sstart
+        while idx < sstop:
+            l += 1
+            idx += sstep
+        return l
+
+    def __repr__(self):
+        return "<ListView {}>".format(repr(self.target[self.start: self.stop: self.step]))
+
+
+lst = [i for i in range(10)]
+
+# [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+view1 = ListView(lst, step=2)
+# <ListView [0, 2, 4, 6, 8]>
+view1[::2] = list(map(lambda n: n ** 2, view1[::2]))
+print(view1)
+# <ListView [0, 2, 16, 6, 64]>
+
+view2 = ListView(lst, 2, -2)
+# [2, 3, 16, 5, 6, 7]
+view2[::2] = list(map(lambda n: n ** 2, view2[::2]))
+print(view2)
+# <ListView [4, 3, 256, 5, 36, 7]>
+
+```
