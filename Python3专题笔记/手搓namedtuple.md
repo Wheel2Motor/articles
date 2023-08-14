@@ -12,7 +12,7 @@ import sys
 import types
 
 def namedtuple(name, attrs):
-    syms = attrs.split()
+    syms = list(filter(lambda _: _, attrs.split()))
     def __init__(self, *args):
         assert len(args) == len(syms)
         for s, a in zip(syms, args):
