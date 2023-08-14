@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
         def __identity_deleter(self):
             """
-            归
+            归零
             """
             self.__identity = 0
 
