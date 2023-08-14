@@ -19,11 +19,10 @@ def namedtuple(name, attrs):
     d = {"__init__": __init__}
     return types.new_class(name, (), {}, lambda ns: ns.update(d))
 
-NT = namedtuple("Man", "name age")
-
-foo = NT("Foo", 23)
-print(foo.name, foo.age)
-
-bar = NT("Bar", 24)
-print(bar.name, bar.age)
+if __name__ == "__main__":
+    NT = namedtuple("Man", "name age")
+    foo = NT("Foo", 23)
+    print(foo.name, foo.age)
+    bar = NT("Bar", 24)
+    print(bar.name, bar.age)
 ```
