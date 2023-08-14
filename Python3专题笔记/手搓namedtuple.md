@@ -10,6 +10,7 @@ namedtuple本质上也就是动态生成的类型，为动态生成的类型的 
 ```python
 import sys
 import types
+import operator
 
 def namedtuple(name, attrs):
     syms = list(filter(lambda _: _, attrs.split()))
@@ -22,10 +23,28 @@ def namedtuple(name, attrs):
     t.__module__ = sys._getframe(1).f_globals["__name__"]
     return t
 
+class NamedTupleMeta(type):
+    def __init__(cls, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for n, name in enumerate(cls._fields):
+            setattr(cls, name, property(operator.itemgetter(n)))
+
+class NamedTuple(tuple, metaclass=NamedTupleMeta):
+    _fields = []
+    def __new__(cls, *args):
+        if len(args) != len(cls._fields):
+            raise ValueError('{} arguments required'.format(len(cls._fields)))
+        return super().__new__(cls,args)
+
 if __name__ == "__main__":
-    NT = namedtuple("Man", "name age")
-    foo = NT("Foo", 23)
+    NT1 = namedtuple("Man", "name age")
+
+    foo = NT1("Foo", 23)
+    bar = NT1("Bar", 24)
     print(foo.name, foo.age)
-    bar = NT("Bar", 24)
     print(bar.name, bar.age)
+
+    class NT2(NamedTuple): _fields = ["x", "y", "z"]
+    spam = NT2(1, 2, 3)
+    print(spam.x, spam.y, spam[2])
 ```
