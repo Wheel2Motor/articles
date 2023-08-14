@@ -7,10 +7,11 @@ __测试版本__：Python3.10.8
 
 namedtuple本质上也就是动态生成的类型，为动态生成的类型的 `__init__` 函数指定与字段数量一样的参数即可实现namedtuple。
 
+一种方式是使用函数动态生成类型。
+
 ```python
 import sys
 import types
-import operator
 
 def namedtuple(name, attrs):
     syms = list(filter(lambda _: _, attrs.split()))
@@ -22,6 +23,19 @@ def namedtuple(name, attrs):
     t = types.new_class(name, (), {}, lambda ns: ns.update(d))
     t.__module__ = sys._getframe(1).f_globals["__name__"]
     return t
+
+if __name__ == "__main__":
+    NT = namedtuple("Man", "name age")
+    foo = NT("Foo", 23)
+    bar = NT("Bar", 24)
+    print(foo.name, foo.age)
+    print(bar.name, bar.age)
+```
+
+以继承的方式更加优雅。
+
+```python
+import operator
 
 class NamedTupleMeta(type):
     def __init__(cls, *args, **kwargs):
@@ -37,14 +51,7 @@ class NamedTuple(tuple, metaclass=NamedTupleMeta):
         return super().__new__(cls,args)
 
 if __name__ == "__main__":
-    NT1 = namedtuple("Man", "name age")
-
-    foo = NT1("Foo", 23)
-    bar = NT1("Bar", 24)
-    print(foo.name, foo.age)
-    print(bar.name, bar.age)
-
-    class NT2(NamedTuple): _fields = ["x", "y", "z"]
-    spam = NT2(1, 2, 3)
+    class NT(NamedTuple): _fields = ["x", "y", "z"]
+    spam = NT(1, 2, 3)
     print(spam.x, spam.y, spam[2])
 ```
