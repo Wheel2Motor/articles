@@ -33,6 +33,8 @@ if __name__ == "__main__":
 以继承的方式更加优雅。
 
 ```python
+# 测试版本：Python3.10.8
+
 import operator
 
 class NamedTupleMeta(type):
