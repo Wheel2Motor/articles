@@ -1,0 +1,538 @@
+\documentclass{ctexbook}
+
+\usepackage{ctex}
+
+\usepackage[svgnames]{xcolor}
+	\definecolor{colorcodeblock}{HTML}{444444}
+
+\usepackage{minted}
+	\setminted{
+		style=default,
+		fontsize=\small,
+		bgcolor=WhiteSmoke,
+		linenos=true,
+		frame=single,
+		framesep=1ex,
+		showspaces=false,
+		showtabs=false,
+		xleftmargin=10pt,
+		numbersep=5pt,
+	}
+	\newmintinline[inlinecode]{text}{
+		bgcolor=white,
+		style=default,
+	}
+
+\usepackage{hyperref}
+
+\usepackage{xeCJKfntef}
+
+\usepackage{multicol}
+	\setlength{\columnseprule}{0.4pt}
+
+
+\title{你不知道的Python}
+\author{Mr Nobody}
+
+\begin{document}
+
+\begin{titlepage}
+\raggedleft
+{\scriptsize\itshape \today}\\[3in]
+{\Huge\bfseries 你不知道的Python}\\[2mm]
+{\large\scshape\underline{The Python You Don't  Know}}\\[5mm]
+{\normalsize Author: \itshape Nobody}
+\end{titlepage}
+
+\frontmatter
+
+大多数书籍会告诉我们Python如何简单，却少有书籍会告诉我们：\linebreak\textbf{其实Python是一门易学难精的语言}。\\[0.1in]
+
+Python因其语法容易上手、动态类型、内存安全、生态丰富等诸多优点而圈粉无数。
+现如今跻身于程序开发圈的子里，似乎身边到处都是会Python的人。
+
+Python的基础语法跟其它编程语言比起来，确实可以说是``新手友好型''，但是其高级特性学起来也是相当抽象。
+笔者觉得，C语言的语法比Python更简单，大多数没能学进去C语言的人，不是因为C语言本身难，而是因为C语言假设用户知道计算机是如何工作的；C语言真正的难，在于它设施上的``一穷二白''，以及将计算机工作方式的复杂性直接暴露给了用户。
+然而Python并不假设用户知道计算机是如何工作的，所以小学生也可以在经过简单的学习后立刻上手；随着对Python的深入了解，大家会发现Python的闭包、匿名函数、自由变量、装饰器、元素编程等概念相当抽象。
+
+大多数Python开发者只用到了Python最基础的功能，用Python的语法写另一种C、C++，并没能有效发挥出Python的优势。
+Python的语法提供了很多``语法糖''，如多值、匿名函数、解包、元编程等；Python的标准库提供了相当多的常用功能，被大家称为``自带电池''\marginpar{自带电池：self operated}，意思是说只用其标准库就可以做很多事情。
+善用Python的语法特性和标准库，能够有效帮助我们把代码写得更快更优雅。
+
+很多人说Python的性能不行，Python的易用性确实是以性能为代价的，但现代的Python生态大多只是借用了Python语言作``外壳''，底层性能悠关的环节实际运行的是C、C++、Fortran等性能更好的语言编官写的库。
+语言本身的速度确实没法跟编译型语言媲美，但是也没有外界传的相差几百几千倍。
+笔者在实践中做过很多次将现有的Python算法移植到C语言，结果发现时间复杂度为$O(n)$的算法，单核性能会得到大约50--100倍左右的提升。
+优化得好的Python代码，会在内部运行其C语言的内联实现\footnote{CPython是这样的，其它实现要看情况了}，性能直追C++。
+当然，GIL\footnote{Global Interpreter Lock：全局解释器锁，会导致Python的多线程只能跑在单核上，无法发恢出多核CPU的优势。}确实是一个较大的性能束缚，幸运的是，从Python3.13开始，已经能够以no-gil模式运行了，可以实现多核多线程。
+
+Python的定位就是鼓励大家善用现有的设施，好好做个调包侠，没有什么可耻的，毕竟——\textbf{人生苦短，我用Python}。\\[0.1in]
+
+同样是Python3，编写本书时的3.12相比3.5已经产生了翻天覆地的变化，Python本身也在跟着时代进步。
+本书中Python代码案例采用Python3.12进行测试，如有版本上的要求，会特别指出。
+
+这并不是一本正而八经编写的的书籍，只是是笔者对工作中踩过的坑进行的记录。
+本书的内容假设您有一定的Python开发经验，如果您有一定的C、C++、C\#、Java语言开发经验会更有助于理解。
+
+笔者才疏学浅，如果您在阅读的过程中发现有错误的地方，感谢您的指正：leepypy@qq.com。
+
+\tableofcontents
+
+\part{改善代码的诸多方法}
+
+\chapter{语法糖}
+很多习惯于静态语言的程序员会在心中觉得，语法糖是奇技淫巧而已，无需当回事。
+但语法糖确实能够有效帮助人们避免给代码写得一团糟。
+
+\section{多值与解包}
+
+\subsection{多值}
+
+\subsubsection{多值}\marginpar{多值：multi-value}
+
+在传统的编程语言如C语言中，函数只能返回一个结果。
+比如一个数的平方根有正负两个解，但C语言中的函数只能返回一个结果。
+要解决这个问题，要不返回一个结构体；要不增加两个指针作为入参。
+
+\begin{minted}{c}
+typedef struct _Result {
+    float pos, neg;
+} Result;
+
+Result MySqrt1(float num) {
+    Result res;
+    res.pos = sqrt(num);
+    res.neg = -res.pos;
+    return Result;
+}
+
+void MySqrt2(float num, float* pos, float* neg) {
+    *pos = sqrt(num);
+    *neg = -(*pos);
+}
+\end{minted}
+
+但Python的函数能返回任意数量的结果，函数能返回多个结果的这个功能就叫做``多值''。
+
+\begin{minted}{py}
+def mysqrt(num):
+    pos = math.sqrt(num)
+    neg = -pos
+    return pos, neg
+\end{minted}
+
+\subsection{解包}\marginpar{解包：unpacking}
+
+\subsubsection{多值函数的返回值是什么}
+
+要了解什么是解包，还要先了解一个多值函数的返回值到底是什么。
+返回多值的函数，其返回值可以在同一个赋值语句中被多个变量接收。
+
+\begin{minted}{py}
+pos, neg = mysqrt(4)
+\end{minted}
+
+但是如果其返回值只赋值到一个变量上，得到的是一个元组。
+
+\begin{minted}{py}
+res = mysqrt(4) # (2, -2)
+\end{minted}
+
+这并不是什么隐式转换，而是Python的表达式语法，逗号分隔的连续多个子表达式构成元组的表达式，
+括号不是必须的{\scriptsize(空元组除外)}。
+\marginpar{\scriptsize\hrule\vspace{1ex}官方文档中有提到：Note that tuples are
+not formed by the parentheses , but rather by use of the comma operator. The
+exception is the empty tuple, for which parentheses are required — allowing
+unparenthesized “nothing” in expressions would cause ambiguities and allow
+common typos to pass uncaught.}
+所以返回多值的函数，本质上是返回了一个元组。
+我们平时写元组都加括号，主要还是为了避免和其它语法结构产生冲突，比如放在函数的形参列表中，
+可能会被认为是函数的多个参数。
+
+\begin{minted}{py}
+1, 1+1, 4-1 # (1, 2, 3)
+\end{minted}
+
+\subsubsection{什么是解包}
+
+Python中的可迭代对象
+\marginpar{可迭代对象：iterable object}
+\footnote{Python中的可迭代对象都是collections.abc.Iterable的子类或虚子类，它们都实现了\inlinecode{__iter__}方法，
+可以用\inlinecode{for ... in}语法进行迭代，但是未必都有长度，比如一个可无限迭代的生成器。
+拥有长度的对象都是collections.abc.Sized的子类或虚子类，可用len()函数获取长度。
+list和tuple就同时是Iterable和Sized的虚子类。
+虚子类是指其符合基类的必要协议，但并不直接集成自基类，这种常见于CPython的C语言内置对象。}
+包括字符串、列表、元组、集合、字典、生成器等。
+所有能用\inlinecode{for ... in}语法进行迭代的对象都是可迭代对象。
+
+可迭代对象可以展开，在赋值语句中同时赋值给多个变量，或变成另一个可迭代对象表达式上下文中的多个元素，这就叫做解包。
+
+\begin{minted}{py}
+a, b = 1, 2
+c, d = (1, 2)
+e, f = [1, 2]
+g, h = "12"
+tup = (3, 4)
+lst = [1, 2, *tup] # [1, 2, 3, 4]
+\end{minted}
+
+\subsubsection{可迭代对象解包}
+可迭代对象在赋值语句中同时对多个变量赋值，只需在赋值号左边提供的变量数量和可迭代对象的长度一致即可，
+变量名之间用逗号隔开。
+
+\marginpar{\scriptsize\hrule\vspace{1ex}在for \ldots{} in语法中，迭代变量就是负责接收每次迭代时返回的结果的变量。
+可以理解为，每次迭代返回的值都被赋值给了迭代变量。
+如果每次迭代返回的值也是可迭代对象，那么当提供了多个迭代变量，也就被自然而然地解包给了每一个。}
+
+\begin{minted}{py}
+pos = [1, 2]
+x, y = pos
+for name, age in [("小明", 24), ("小强", 25)]:
+    print(f"{name}'s age is {age}")
+\end{minted}
+
+还可以利用解包的功能，轻松实现交换两个变量。
+其本质原理就是构造了一个新的元组，然后再按顺序解包给变量。
+
+\begin{minted}{py}
+a, b = 1, 2
+b, a = a, b
+\end{minted}
+
+其实赋值号左边提供的变量数量和可迭代对象的长度不一致也可以。
+可以回想一个Python的函数定义中，当需要按顺序提供不确定数量的参数时的做法：星号。
+星号装饰过的变量，只能放在解包变量的尾部，它会在赋值时，``贪婪''地将后续的一切内容包裹到一个元组中。
+
+\marginpar{\scriptsize\hrule\vspace{1ex}接收数据的变量数量和解包的可迭代对象长度不一致的情况，可以考虑有这么一行数据，
+对用户有用的只有前两个，为剩下的数据起名实在是一件很头痛的事，毕竟起名实在是太难了。}
+
+\begin{minted}{py}
+info = [
+    ("李华", 25, 165.5, 55.3),
+    ("小刚", 26, 170.1, 65.0),
+    ("小明", 23, 172.0, 67.2),
+]
+for name, age, *_ in info: # 不知道起什么名称时，下划线是不错的选择
+    print(f"{name}'s age is {age}")
+\end{minted}
+
+可迭代对象还可以解包为另一个可迭代对象中的多个元素，也是通过星号。
+值得注意的是函数的形式参数列表也可以算是一种可迭代对象
+\footnote{CPython的C代码中，对函数形式参数列表的访问，就是从元组对象身上通过\inlinecode{PyArg_ParseTuple}实现的，
+CPython给函数对象的参数列表封装成了一个元组。}
+，所以也可以在参数列表中展开。
+\marginpar{\scriptsize\hrule\vspace{1ex}官方文档中关于单个星号解包语法的简短描述：An asterisk * denotes iterable
+unpacking. Its operand must be an iterable. The iterable is expanded into a sequence of items, which are included in
+the new tuple, list, or set, at the site of the unpacking.}
+
+\begin{minted}{py}
+# 在另一个可迭代对象中解包
+lst1 = [1, 2, 3]
+lst2 = [*lst1, 4, 5, 6] # [1, 2, 3, 4, 5, 6]
+# 在函数参数列表中解包
+def dist(x1, y1, x2, y2):
+    xdiff = x2 - x1
+    ydiff = y2 - y1
+    return sqrt(xdiff ** 2 + ydiff ** 2)
+pos1 = (1, 2)
+pos2 = (3, 4)
+dist(*pos1, *pos2)
+\end{minted}
+
+对可迭代对象的解包顺序取决于可迭代对象本身迭代的顺序。
+对列表、元组、字符串这类有序对象，展开的顺序就是其自身元素储存的顺序；对集合、字典这类无序对象，
+因为其本身就是无序数据结构，迭代的顺序是无法保证的，因此展开后的元素顺序也无法保证。
+且字典的解包只能解包出来其键，因为字典每次迭代确实是只返回一个键。
+
+对生成器展开后的顺序和生成器求值得到数据的顺序是一致的。
+如果是一个无限生成器，那么程序会卡死，因为解包的过程中会对可迭代对象不断迭代，直到迭代结束。
+
+\marginpar{\scriptsize\hrule\vspace{1ex}(i for i in range(3))是生成器初始式，并不是元组初始式，
+Python中并没有元组初始式。}
+
+\begin{minted}{py}
+gen1 = (i for i in range(3))
+[*gen1, 3, 4, 5] # [0, 1, 2, 3, 4, 5]
+
+def gen2():
+    i = 0
+    while True:
+        yield i
+        i += 1
+[*gen2, 3, 4, 5] # 程序会卡死
+\end{minted}
+
+\begin{multicols}{2}
+
+\begin{minted}[linenos=false]{py}
+a = 1,
+b = 2
+c = 1 + 2
+\end{minted}
+
+解包特性产生的bug也会极其难以排察。
+代码量大的情况下很难发现这个案例中，``1''的后面有一个``,''，它会导致后续的代码中报出类型错误。
+乍一看这跟解包没啥关系，但这种bug多是由于代码编写的过程中有一段时期利用过解包特性，因此\inlinecode{a}曾经是一个元组，后期不再使用解包特性时，删除代码漏删了逗号。
+
+\end{multicols}
+
+\subsubsection{字典解包}
+字典也是前面介绍的可迭代对象中的一种，但它有点特殊，所以拿出来单独讲。
+严格来说它是一种映射对象
+\marginpar{映射对象：mapping object}
+\footnote{Python中的映射对象都是\inlinecode{collections.abc.Mapping}的子类或虚子类。}
+，同时映射对象也是可迭代对象的子类。
+
+前面说过字典的解包，只能得到其键，不能得到其值，因为字典迭代的时候确实每次只返回一个键。
+但有一种我们无时无刻不在用的字点键值对解包方法容易被忽视：\inlinecode{for k, v in yourdict.items()}。
+因为字典的\inlinecode{items}方法会返回一个\inlinecode{dict_items}可迭代对象，其每次迭代后返回一个元组，
+元组的内容正是一对键值对，此时迭代变量有两个，正好将元组内的键和值解包。
+
+字典还有一种专用的解包语法：两个星号解包键值对。
+不过这个语法不能随便用，它有两个要求：字典的键都是字符串，只能在函数的形参列表中使用。它相当于是用字典的键去
+匹配函数的参数名称并将值输入进去。
+
+\marginpar{\scriptsize\hrule\vspace{1ex}官方文档中关于两个星号解包语法的简短描：A double asterisk ** denotes dictionary
+unpacking. Its operand must be a mapping. Each mapping item is added to the new dictionary. Later values replace values
+already set by earlier key/datum pairs and earlier dictionary unpackings.}
+
+\begin{minted}{py}
+info = [
+    {"name": "李华", "age":25, "height":165.5, "weight":55.3},
+    {"name": "小刚", "age":26, "height":170.1, "weight":65.0},
+]
+
+def intro(name, age, height, weight):
+    print(f"{name}'s age is {age}, "
+          f"height - {height}, "
+          f"weight - {weight}")
+for item in info:
+    intro(**item)
+\end{minted}
+
+至此可能还是不会觉得有什么用，但是试想你有一个json字典，反序列化后直接就可以塞入函数中使用。
+
+\begin{minted}{py}
+allinfo = json.load(your_json_file)
+for info in allinfo:
+    intro(**info)
+\end{minted}
+
+\section{闭包}
+
+\subsection{什么是闭包}
+
+有时候某个函数中会临时用到一个临时函数，它只对当前作用域有意义，脱离当前环境后不会再用上。
+
+\marginpar{\scriptsize\hrule\vspace{1ex}在《C Primer Plus》中关于翻译单元的描述：一个源代码文件和它所包含的头文件。大体就是指，预处理完成后、编译前这个时期的产物。}
+
+在C语言中，我们通常定义一个static函数来限制该函数不会在编译后导出符号
+\footnote{C语言默认情况下函数或全局变量如果没写static或extern修饰符，都是extern来修饰。
+如果被extern修饰过，那么编译后函数、全局变量的名称就具有全局链接属性，可以和其它库进行链接；如果被static修饰过，就具有静态链接属性，只能在当前翻译单元内使用。
+保留函数、全局变量名称到二进制数据中的这个行为就叫做导出符号。
+如果两个目标文件中拥有同名符号，那么链接时就会产生符号重定义的错误。}
+，这样即使其它翻译单元也有一个同名函数，但是在链接时并不会产生冲突。
+
+\begin{minted}{c}
+static max_of_3(int a, int b, int c) {
+    int ret = a;
+    if (b > ret) ret = b;
+    if (c > ret) ret = c;
+    return ret;
+}
+\end{minted}
+
+但这样做还是会有漏洞，万一被该翻译单元内的其它函数误用了怎么办。
+通常为了方便后续维护，会在代码中写上详细的使用说明。
+
+Python运行时的对象具有一切皆数据的特性。
+无论普通的数据类型如整数、字符串，还是函数和类，它们都是数据，没有指令和数据的区分，都可以在程序运行过程中动态生成。
+所以我们可以在函数中定义函数，甚至在函数中定义类，这种行为叫做闭包。
+
+在Python中我们可以直接在一个函数内部定义另一个函数，这样在内部定义的函数就成了其所在函数中的一个局部变量，确保无法在更广阔的外部作用域中访问到，也不容易对后续的开发造成干扰。
+
+\begin{minted}{py}
+def max_of_tup3s(tup3s):
+    def max_of_3(a, b, c):
+       ret = a
+       if b > ret: ret = b
+       if c > ret: ret = c
+       return ret
+    return [max_of_3(*tup3) for tup3 in tup3s]
+
+tup3s = ((1, 2, 3), (4, 5, 6))
+max_of_tup3s(tup3s) # (3, 6)
+\end{minted}
+
+这种在函数中定义函数来进行功能隔离的行为，就叫做闭包。
+
+\subsection{循环体内的闭包函数会被多次编译吗}
+
+由于Python中的函数可以在程序运行中被动态生成，所以如果闭包函数定义被写在了循环体内，会导致反复生成函数对象。
+话说到这可能着急的读者已经开始改代码了，但其实大多数情况下根本不用着急。
+
+\begin{minted}{py}
+def outter():
+    for i in range(100):
+        def pow2(n): return n * n
+        pow2(i)
+\end{minted}
+
+可能一些读者曾经在各种书籍、视频教程中看到这样一种描述——``Python是一行一行边解释边执行的''。
+其实这么说并不准确，Python是一种JIT语言\footnote{Just In Time语言：TODO}，它有自己``编译''的过程。
+
+Python实际执行的是其字节码。
+解释器可以在导入模块时对整个模块进行编译，并在本地写入其编译得到的字节码供后续使用，这样下次就不用再次编译。
+也可以在运行过程中将一段字符串编译为字节码，然后立即执行。
+
+我们可以用标准库的\inlinecode{dis}模块中的\inlinecode{dis}方法对一个函数对象``反编译''，看到函数编译后的字节码。
+
+\begin{minted}{py}
+import dis
+dis.dis(outter)
+# 1     0 RESUME         0
+# 
+# 2     2 LOAD_GLOBAL    1 (NULL + range)
+#      12 LOAD_CONST     1 (100)
+#      14 CALL           1
+#      22 GET_ITER
+#   >> 24 FOR_ITER      13 (to 54)
+#      28 STORE_FAST     0 (i)
+# 
+# 3    30 LOAD_CONST     2 (<code object pow2 at 0x102d4bab0>)
+#      32 MAKE_FUNCTION  0
+#      34 STORE_FAST     1 (pow2)
+# 
+# 4    36 PUSH_NULL
+#      38 LOAD_FAST      1 (pow2)
+#      40 LOAD_FAST      0 (i)
+#      42 CALL           1
+#      50 POP_TOP
+#      52 JUMP_BACKWARD 15 (to 24)
+# 
+# 2 >> 54 END_FOR
+#      56 RETURN_CONST   0 (None)
+# 
+# Disassembly of <code object pow2 at 0x102d4bab0>:
+# 3     0 RESUME         0
+#       2 LOAD_FAST      0 (n)
+#       4 LOAD_FAST      0 (n)
+#       6 BINARY_OP      5 (*)
+#      10 RETURN_VALUE
+\end{minted}
+
+通过对字节码的观察，我们不难发现，函数\verb|pow2|的字节码只产生了一次编译结果。
+但是解释器会在循环中多次通过指令\verb|LOAD_CONST|加载编译好的字节码，然后通过指令\verb|MAKE_FUNCTION|产生一个新的函数对象。
+
+虽然\verb|LOAD_CONST|和\verb|MAKE_FUNCTION|会被冗余执行，但是Python的循环语句本身就比较慢，如果循环本身次数不那么多，每次循环体内多这两个指令也无伤大雅，但是如果循环的次数多了，叠加效应就会变得显著。
+
+\textbf{但无论如何，这都不是一个好的编程习惯。}
+
+\subsection{捕获与自由变量}
+
+闭包函数能够访问其外部函数的局部变量，且在其外部函数执行完成后，仍然能够继续访问该变量。
+
+\begin{minted}{py}
+def return_a_number(n):
+    num = n
+    def impl():
+        return num
+    return impl
+\end{minted}
+
+闭包函数访问外部函数作用域内的局部变量，这种行为叫作捕获；被闭包函数访问的外部函数作用域内的变量叫自由变量，在一些编程语言中也叫上值。\marginpar{上值：up-value}
+
+由于自由变量本身也是外部函数的局部变量，所以外部函数是可重入\marginpar{可重入：re-entrant\\是指不同时序下多次调用互不影响。}的。
+外部函数多次执行返回的闭包函数，即使在代码里访问的都是同一个自由变量，但它们都是外部函数执行时的局部变量，所以互不影响。
+
+\begin{minted}{py}
+r3 = return_a_number(3)
+r4 = return_a_number(4)
+r3() # 3
+r4() # 4
+\end{minted}
+
+Python中为变量赋值，由于不需要声明，所以在函数中为变量赋值时，到底是为全局变量、自由变量还是局部变量赋值就容易产生歧意。\marginpar{\scriptsize\hrule\vspace{1ex}函数内变量只是读取而不写入的话就不会产生歧意，只有需要赋值时才会产生歧意，不声明global或nonlocal的话，默认就是局部变量。}
+为了消除歧意，如果要为全局变量赋值，要在赋值前使用\verb|global|命令在函数内声明全局变量；如果要为自由变量赋值，要在赋值前使用\verb|nonlocal|命令在闭包函数内声明自由变量
+
+\begin{minted}{py}
+total_counter = 0
+def counter(n):
+    closure_counter = 0
+    def impl():
+        global total_counter
+        nonlocal closure_counter
+        total_counter += 1
+        closure_counter += 1
+        return closure_counter, total_counter
+    return impl
+
+c1 = counter()
+c2 = counter()
+c1() # 1, 1
+c1() # 2, 2
+c2() # 1, 3
+c2() # 2, 4
+\end{minted}
+
+\section{匿名函数}
+
+有时候需要临时用到一个简单函数的时候，定义一个闭包函数也觉得大动干戈了，还可以定义一个匿名函数，直接到一个变量上。
+
+匿名函数形式：\verb|lambda <arg1>, <arg2>, <...>: <expression>|
+
+使用\verb|lambda|关键字进行定义，冒号分隔参数列表和函数体。
+\marginpar{\scriptsize\hrule\vspace{1ex}Python中的函数即使没使用return语句，也会默认返回None。我们可以用这个特性，使用or结构将不返回内容的函数结合起来，形成链式调用。}
+参数列表可以没有参数或任意数量的参数，使用逗号分隔，参数列表前后不需要括号。
+函数体是一个表达式，所以也意味着其必然得有返回值，即使是返回None。
+
+\section{高阶函数}
+
+	\subsection{map}
+	\subsection{filter}
+	\subsection{reduce}
+
+\section{装饰器}
+
+	\subsection{装饰器有什么用}
+	\subsection{自定义装饰器}
+	\subsection{自定义带参数的装饰器}
+	\subsection{手动实现property装饰器}
+
+\part{类}
+
+	\section{魔法方法}
+
+\part{模块与包}
+
+	\chapter{模块与包各自怎么理解}
+		\section{模块是什么}
+		\section{包是什么}
+		\section{相对导入}
+
+	\chapter{导入模块}
+		\section{\_\_import\_\_}
+		\section{importlib}
+		\section{重新导入模块}
+		\section{动态导入模块}
+
+\part{标准库的设施}
+
+	\chapter{数据结构}
+	\chapter{路径操作}
+	\chapter{枚举}
+	\chapter{数据类}
+
+
+\part{高级特性}
+	\chapter{元类}
+	\chapter{描述符协议}
+	\chapter{类型注解}
+
+
+\part{高性能编程}
+\chapter{与C语言混合编程}
+\chapter{numpy}
+\chapter{cython}
+
+
+\end{document}
